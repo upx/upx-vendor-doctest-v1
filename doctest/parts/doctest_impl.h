@@ -230,6 +230,7 @@ namespace detail
         bool no_line_numbers;      // if source code line numbers should be omitted from the output
         bool no_skipped_summary;   // don't print "skipped" in the summary !!! UNDOCUMENTED !!!
 
+        bool has_args;         // to print the --help hint
         bool help;             // to print the help
         bool version;          // to print the version
         bool count;            // if only the count of matching tests is to be retreived
@@ -272,6 +273,7 @@ namespace detail
         ContextState()
                 : filters(8) // 8 different filters total
         {
+            has_args = false;
             resetRunData();
         }
     };
@@ -699,6 +701,7 @@ namespace detail
             case assertType::DT_FAST_WARN_UNARY_FALSE   : return "FAST_WARN_UNARY_FALSE";
             case assertType::DT_FAST_CHECK_UNARY_FALSE  : return "FAST_CHECK_UNARY_FALSE";
             case assertType::DT_FAST_REQUIRE_UNARY_FALSE: return "FAST_REQUIRE_UNARY_FALSE";
+            default: break;
                 // clang-format on
         }
         DOCTEST_MSVC_SUPPRESS_WARNING_POP
@@ -1783,9 +1786,31 @@ namespace detail
     }
 
     void printVersion(std::ostream& s) {
-        if(contextState->no_version == false)
-            s << Color::Cyan << "[doctest] " << Color::None << "doctest version is \""
-              << DOCTEST_VERSION_STR << "\"\n";
+        if(contextState->no_version == false) {
+#ifdef DOCTEST_CONFIG_WITH_LONG_LONG
+            unsigned long long v = 0;
+#else
+            unsigned long v = 0;
+#endif
+            s << Color::Cyan << "[doctest] " << Color::None << "doctest version is "
+              << DOCTEST_VERSION_STR << "\n";
+            s << Color::Cyan << "[doctest] " << Color::None << "compiler version is ";
+#if DOCTEST_CLANG
+            s << "clang ";
+            v = DOCTEST_CLANG;
+#elif DOCTEST_GCC
+            s << "gcc ";
+            v = DOCTEST_GCC;
+#elif DOCTEST_MSVC
+            s << "msvc ";
+            v = DOCTEST_MSVC;
+#else
+            s << "UNKNOWN ";
+#endif
+            s << (v / 10000000) << "." << (v % 10000000 / 100000) << "." << (v % 100000);
+            s << " (" << (sizeof(void *) * 8) << "-bit)";
+            s << "\n";
+        }
     }
 
     void printHelp(std::ostream& s) {
@@ -1900,6 +1925,7 @@ namespace detail
 
         // remove any coloring
         s << Color::None;
+        s.flush();
     }
 } // namespace detail
 
@@ -1919,6 +1945,7 @@ void Context::parseArgs(int argc, const char* const* argv, bool withDefaults) {
     using namespace detail;
 
     // clang-format off
+    if (argc > 0 && argv != 0) p->has_args = true;
     parseCommaSepArgs(argc, argv, "dt-source-file=",        p->filters[0]);
     parseCommaSepArgs(argc, argv, "dt-sf=",                 p->filters[0]);
     parseCommaSepArgs(argc, argv, "dt-source-file-exclude=",p->filters[1]);
@@ -2069,7 +2096,8 @@ int Context::run() {
     }
 
     printVersion(std::cout);
-    std::cout << Color::Cyan << "[doctest] " << Color::None << "run with \"--help\" for options\n";
+    if (p->has_args)
+        std::cout << Color::Cyan << "[doctest] " << Color::None << "run with \"--help\" for options\n";
 
     unsigned i = 0; // counter used for loops - here for VC6
 
