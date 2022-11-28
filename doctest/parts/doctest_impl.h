@@ -1139,7 +1139,12 @@ namespace detail
     DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4996) // std::uncaught_exception is deprecated in C++17
     DOCTEST_GCC_SUPPRESS_WARNING_WITH_PUSH("-Wdeprecated-declarations")
     void useContextIfExceptionOccurred(IContextScope* ptr) {
-        if(std::uncaught_exception()) {
+#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L && (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200)
+        if(std::uncaught_exceptions() > 0)
+#else
+        if(std::uncaught_exception())
+#endif
+        {
             std::ostringstream s;
             ptr->build(&s);
             contextState->exceptionalContexts.push_back(s.str());
