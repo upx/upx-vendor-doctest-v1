@@ -1815,7 +1815,7 @@ namespace detail
             s << "UNKNOWN ";
 #endif
             s << (v / 10000000) << "." << (v % 10000000 / 100000) << "." << (v % 100000);
-            s << " (" << (sizeof(void *) * 8) << "-bit)";
+            s << " (" << (sizeof(void *) * 8) << "-bit, C++" << __cplusplus << ")";
             s << "\n";
         }
     }
